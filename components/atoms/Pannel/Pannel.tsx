@@ -6,7 +6,8 @@ import "./Panel.scss";
 
 export interface PanelProps {
     className?: string;
-    isEdit?: boolean;
+    isEditable?: boolean;
+    active?: boolean;
     actionLabel?: string;
     hasClickHandler?: boolean;
     onSave: () => void;
@@ -16,12 +17,14 @@ export interface PanelProps {
 
 export const Panel = (props: PanelProps) => {
     const [isActive, setActive] = React.useState<boolean>(
-        props.isEdit || false,
+        props.active || false,
     );
 
     const toggleActive = React.useCallback(() => {
-        setActive(!isActive);
-    }, [isActive]);
+        if (props.isEditable) {
+            setActive(!isActive);
+        }
+    }, [props.isEditable, isActive]);
 
     const renderContent = (
         <React.Fragment>

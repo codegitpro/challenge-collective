@@ -15,7 +15,7 @@ export interface PanelProps {
     children: React.ReactNode;
 }
 
-export const Panel = (props: PanelProps) => {
+export const Panel = React.memo((props: PanelProps) => {
     const [isActive, setActive] = React.useState<boolean>(
         props.active || false,
     );
@@ -49,4 +49,4 @@ export const Panel = (props: PanelProps) => {
             )}
         </div>
     );
-};
+});

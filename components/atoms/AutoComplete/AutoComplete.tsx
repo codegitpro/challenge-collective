@@ -54,7 +54,7 @@ export interface AutoCompleteProps {
     onSelect: (result: string) => void;
 }
 
-export const AutoComplete = (props: AutoCompleteProps) => {
+export const AutoComplete = React.memo((props: AutoCompleteProps) => {
     const handleAddressSelected = React.useCallback(
         (address: string) => {
             geocodeByAddress(address)
@@ -82,4 +82,4 @@ export const AutoComplete = (props: AutoCompleteProps) => {
             )}
         </PlacesAutocomplete>
     );
-};
+});

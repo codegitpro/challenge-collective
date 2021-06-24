@@ -111,7 +111,7 @@ export class TransitionInput extends Component<
 
     handlePanelEdit = () => {
         if (!this.approved) {
-            const oldValue = this.getInputValueFromStore();
+            const oldValue = this.getStoreValue();
             this.setState({ oldValue, edit: true });
         }
     };

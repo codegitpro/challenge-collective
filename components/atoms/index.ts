@@ -1,3 +1,3 @@
 export * from "./AutoComplete/AutoComplete";
-export * from "./Pannel/Pannel";
+export * from "./Panel/Panel";
 export * from "./Select/Select";

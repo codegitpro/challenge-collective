@@ -8,10 +8,10 @@ export interface SelectProps {
     onChange: () => void;
 }
 
-export const Select = (props: SelectProps) => (
+export const Select = React.memo((props: SelectProps) => (
     <select value={props.value} onChange={props.onChange}>
         {props?.options.map(item => (
             <option value={item.key}>{item.value}</option>
         ))}
     </select>
-);
+));

@@ -51,15 +51,15 @@ const SuggestionList = (props: SuggestionListProps) => {
 export interface AutoCompleteProps {
     value: string;
     onChange: (result: string) => void;
-    onSelected: (result: string) => void;
+    onSelect: (result: string) => void;
 }
 
-export const AutoComplete = (props: AutoCompleteProps) => {
+export const AutoComplete = React.memo((props: AutoCompleteProps) => {
     const handleAddressSelected = React.useCallback(
         (address: string) => {
             geocodeByAddress(address)
                 .then(results => {
-                    props.onSelected(results?.[0]);
+                    props.onSelect(results?.[0]);
                 })
                 .catch(error => console.error("Error", error));
         },
@@ -82,4 +82,4 @@ export const AutoComplete = (props: AutoCompleteProps) => {
             )}
         </PlacesAutocomplete>
     );
-};
+});

@@ -6,32 +6,35 @@ import "./Panel.scss";
 
 export interface PanelProps {
     className?: string;
+    editMode?: boolean;
     isEditable?: boolean;
-    active?: boolean;
-    actionLabel?: string;
-    hasClickHandler?: boolean;
+    hasClickOut?: boolean;
+    onEdit: () => void;
     onSave: () => void;
-    onClickOut?: () => void;
+    onCancel: () => void;
     children: React.ReactNode;
 }
 
 export const Panel = React.memo((props: PanelProps) => {
-    const [isActive, setActive] = React.useState<boolean>(
-        props.active || false,
-    );
+    const [isActive, setActive] = React.useState<boolean>(false);
 
     const toggleActive = React.useCallback(() => {
-        if (props.isEditable) {
+        if (props?.isEditable) {
             setActive(!isActive);
         }
-    }, [props.isEditable, isActive]);
+    }, [props?.isEditable, isActive]);
 
     const renderContent = (
         <React.Fragment>
             {props?.children}
-            {props.actionLabel && isActive && (
+            {isActive && props?.editMode && (
                 <div className="transition-edit" onClick={props.onSave}>
-                    {props.actionLabel}
+                    Save
+                </div>
+            )}
+            {isActive && !props?.editMode && (
+                <div className="transition-edit" onClick={props.onEdit}>
+                    Edit
                 </div>
             )}
         </React.Fragment>
@@ -42,8 +45,10 @@ export const Panel = React.memo((props: PanelProps) => {
             className={cx("transition-input transition-note", props?.className)}
             onMouseEnter={toggleActive}
             onMouseLeave={toggleActive}>
-            {props?.hasClickHandler ? (
-                <ClickOutHandler>{renderContent}</ClickOutHandler>
+            {props?.hasClickOut ? (
+                <ClickOutHandler onClickOut={props.onCancel}>
+                    {renderContent}
+                </ClickOutHandler>
             ) : (
                 renderContent
             )}

@@ -32,7 +32,6 @@ interface Store {
 interface TransitionInputProps {
     name: string;
     index: number;
-    value: any;
     notes?: boolean;
     link?: boolean;
     boolean?: boolean;
@@ -61,51 +60,98 @@ export class TransitionInput extends Component<
 
     constructor(props: TransitionInputProps) {
         super(props);
+
         this.store = props.OnboardHykeStore as Store;
         this.approved = this.store.transactionInfo.approved;
-        this.state = { edit: false, oldValue: "" };
+        this.type = getInputType();
+        this.transactionType = getTransactionType();
+        this.state = { oldValue: "", edit: false };
     }
 
-    getStoreValue = () => {
-        const transactionInfo = this.store.transactionInfo;
-
-        if (this.props?.notes || this.props?.link) {
-            return transactionInfo?.[this.props.name];
+    getInputType = () => {
+        if (this.props?.notes) {
+            return "notes";
+        } else if (this.props?.link) {
+            return "link";
+        } else if (this.props?.boolean) {
+            return "select";
+        } else if (this.props.placesInput) {
+            return "autoComplete";
+        } else if (this.props?.dollar) {
+            return "number";
+        } else {
+            return "text";
         }
+    };
 
-        const transactionType = this.props.clientInfo
+    getTransactionType = () => {
+        return this.props?.notes || this.props?.link
+            ? "transactionInfo"
+            : this.props.clientInfo
             ? "transitionClientInfo"
             : "transactionInfo";
+    };
 
-        const source = this.store?.[transactionType]?.[this.props.name];
+    getStoreValue = () => {
+        const inputName = this.props.name;
+        const inputType = this.type;
+        const transactionType = this.transactionType;
+        const transactionInfo = this.store.transactionInfo;
 
-        if (this.props?.boolean) {
-            return (
-                this.props.value ||
-                (source === true
-                    ? "Yes"
-                    : source === false
-                    ? "No"
-                    : "Select an option")
-            );
+        if (inputType === "link" || inputType === "notes") {
+            return transactionInfo?.[inputName];
+        }
+
+        const source = this.store?.[transactionType]?.[inputName];
+
+        if (inputType === "select") {
+            if (source === true) {
+                return "Yes";
+            } else if (source === true) {
+                return "No";
+            } else {
+                return "Select an option";
+            }
         }
 
         return this.props.index ? source[this.props.index - 1] : source;
     };
 
-    setStoreValue = value => {
-        const transactionType =
-            this.props?.notes || this.props?.link
-                ? "transactionInfo"
-                : this.props.clientInfo
-                ? "transitionClientInfo"
-                : "transactionInfo";
+    setStoreValue = (value: any) => {
+        const inputName = this.props.name;
+        const transactionType = this.transactionType;
 
         if (this.props.index) {
-            this.store[transactionType][this.props.name][this.props.index - 1] =
-                value;
+            const index = this.props.index - 1;
+            this.store[transactionType][inputName][index] = value;
         } else {
-            this.store[transactionType][this.props.name] = value;
+            this.store[transactionType][inputName] = value;
+        }
+    };
+
+    saveTransactionInfo = () => {
+        const inputName = this.props.name;
+        const addressInputs = [
+            "home_address",
+            "business_address",
+            "home_aptunit",
+            "business_aptunit",
+        ];
+
+        const isUpdateAddress = addressInputs.includes(inputName);
+
+        if (this.props.clientInfo && isUpdateAddress) {
+            this.store.updateClientInfo(inputName);
+        } else if (!this.approved) {
+            if (inputName === "advised_salary") {
+                const tempValue = this.store.transactionInfo[inputName] / 1000;
+                const updatedValue = Math.round(tempValue) * 1000;
+                this.store.transactionInfo[inputName] = updatedValue;
+                this.store.getTransitionPlanPotentialSavings();
+            } else {
+                const clientId = this.store.transactionClientId;
+                this.store.updateTransactionInfo(clientId);
+            }
         }
     };
 
@@ -117,30 +163,11 @@ export class TransitionInput extends Component<
     };
 
     handlePanelSave = () => {
-        const clientInfoInputs = [
-            "home_address",
-            "business_address",
-            "home_aptunit",
-            "business_aptunit",
-        ];
+        const inputType = this.type;
+        const isEditMode = this.state.edit === true;
 
-        const isUpdateClient = clientInfoInputs.includes(this.props.name);
-
-        if (this.props.clientInfo && isUpdateClient) {
-            this.store.updateClientInfo(this.props.name);
-        } else if (!this.approved) {
-            if (this.props.name === "advised_salary") {
-                const updatedValue =
-                    Math.round(
-                        this.store.transactionInfo[this.props.name] / 1000,
-                    ) * 1000;
-                this.store.transactionInfo[this.props.name] = updatedValue;
-                this.store.getTransitionPlanPotentialSavings();
-            } else {
-                this.store.updateTransactionInfo(
-                    this.store.transactionClientId,
-                );
-            }
+        if (isEditMode && inputType !== "link") {
+            this.saveTransactionInfo();
         }
 
         this.setState({ edit: false });
@@ -156,7 +183,7 @@ export class TransitionInput extends Component<
         this.setStoreValue(newValue);
     };
 
-    handleInputChange = e => {
+    handleInputChange = (e: any) => {
         if (!this.approved) {
             setStoreValue(e.target.value);
         }
@@ -169,75 +196,57 @@ export class TransitionInput extends Component<
     };
 
     handleAddressSelected = address => {
-        if (this.props.name === "business_address") {
+        const inputName = this.props.name;
+
+        if (inputName === "business_address") {
             this.store.handleParsedBusinessAddress(address);
             this.store.transitionClientInfo.updateBusinessAddress = true;
             return;
         }
-        if (this.props.name === "home_address") {
+        if (inputName === "home_address") {
             this.store.handleParsedHomeAddress(address);
             this.store.transitionClientInfo.updateHomeAddress = true;
             return;
         }
     };
 
-    handlePanelSave = () => {
-        if (this.props.notes) {
-            this.saveEdit(true);
-            return;
-        }
-        if (!this.props.link) {
-            if (this.state.edit === true) {
-                this.saveEdit();
-            } else if (!this.props?.link) {
-                this.enterEditMode;
-            }
-        }
-    };
-
     render() {
-        const selectOptions = [
-            {
-                key: "select",
-                value: "Select an option",
-            },
-            { key: "yes", value: "Yes" },
-            { key: "no", value: "No" },
-        ];
         const inputValue = this.getStoreValue();
-        const actionLabel =
-            this.props.notes || (!this.props.link && this.state.edit)
-                ? "save"
-                : !this.props.link && !this.state.edit
-                ? "edit"
-                : undefined;
 
         return (
             <Panel
-                actionLabel={actionLabel}
                 isEditable={this.props.clientInfo || !this.approved}
-                hasClickHandler={!this.props?.notes && !this.props.link}
+                editMode={this.state.edit}
+                hasClickOut={this.type !== "notes" && this.type !== "link"}
+                onEdit={this.handlePanelEdit}
                 onSave={this.handlePanelSave}
-                onClickOut={this.handlePanelCancel}>
-                {this.props.notes && (
+                onCancel={this.handlePanelCancel}>
+                {this.type === "notes" && (
                     <textarea
                         placeholder="Add a note about this section"
                         value={inputValue}
                         onChange={this.handleInputChange}
                     />
                 )}
-                {this.props.link && <a href={inputValue}>{inputValue}</a>}
-                {!this.props.notes && !this.props.link && (
+                {this.type === "link" && <a href={inputValue}>{inputValue}</a>}
+                {this.type !== "notes" && this.type !== "link" && (
                     <React.Fragment>
                         {this.state.edit ? (
                             <React.Fragment>
-                                {this.props.boolean ? (
+                                {this.type === "select" ? (
                                     <Select
                                         value={inputValue}
-                                        options={selectOptions}
+                                        options={[
+                                            {
+                                                key: "select",
+                                                value: "Select an option",
+                                            },
+                                            { key: "yes", value: "Yes" },
+                                            { key: "no", value: "No" },
+                                        ]}
                                         onChange={this.handleSelect}
                                     />
-                                ) : this.props.placesInput ? (
+                                ) : this.type === "autoComplete" ? (
                                     <AutoComplete
                                         value={inputValue}
                                         onChange={this.handleAddressChanged}
@@ -245,11 +254,7 @@ export class TransitionInput extends Component<
                                     />
                                 ) : (
                                     <input
-                                        type={
-                                            this.props.dollar
-                                                ? "number"
-                                                : "text"
-                                        }
+                                        type={this.type}
                                         placeholder={this.props.placeholder}
                                         value={inputValue}
                                         onChange={this.handleInputChange}
